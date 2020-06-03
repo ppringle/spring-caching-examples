@@ -12,3 +12,7 @@ spring:
   h2:
     console:
       enabled: true
+  cache:
+    cache-names: billionaires
+    caffeine:
+      spec: maximumSize=3,expireAfterAccess=30s

@@ -8,11 +8,11 @@ CREATE TABLE billionaires (
 );
 
 INSERT INTO billionaires (first_name, last_name, career) VALUES
-  ('Jeff', 'Bezos', 'Billionaire Tech Entrepreneur'),
+  ('Jeff', 'Bezos', 'Tech Entrepreneur'),
   ('Qin', 'Yinglin', 'Pig Breeder'),
-  ('Mark ', 'Zuckerberg', 'Billionaire Tech Entrepreneur'),
+  ('Mark ', 'Zuckerberg', 'Tech Entrepreneur'),
   ('Bernard ', 'Arnault', 'Fashion'),
   ('Jim ', 'Walton', 'Walmart'),
-  ('Aliko', 'Dangote', 'Billionaire Industrialist'),
-  ('Bill', 'Gates', 'Billionaire Tech Entrepreneur'),
-  ('Folrunsho', 'Alakija', 'Billionaire Oil Magnate');
+  ('Aliko', 'Dangote', 'Industrialist'),
+  ('Bill', 'Gates', 'Tech Entrepreneur'),
+  ('Folrunsho', 'Alakija', 'Oil Magnate');
