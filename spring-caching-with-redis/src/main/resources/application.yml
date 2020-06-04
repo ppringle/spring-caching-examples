@@ -1,0 +1,36 @@
+server:
+  port: 10091
+
+spring:
+  application:
+    name: spring-caching-with-redis
+  datasource:
+    url: jdbc:h2:mem:testRedisDB
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  h2:
+    console:
+      enabled: true
+  cache:
+    cache-names: billionaires
+    redis:
+      time-to-live: 30s
+    type: redis
+  redis:
+    host: localhost
+    port: 6379
+    password:
+    jedis:
+      pool:
+        max-active: 7
+        max-idle: 7
+        min-idle: 2
+        max-wait: -1ms
+
+#---
+#spring:
+#  profiles: test
+#  redis:
+#    host: localhost
+#    port: 6370
