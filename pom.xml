@@ -19,6 +19,7 @@
 
 	<modules>
     	<module>spring-caching-with-caffeine</module>
+		<module>spring-caching-with-redis</module>
 	</modules>
 
     <dependencyManagement>

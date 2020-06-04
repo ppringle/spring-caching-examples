@@ -1,4 +1,4 @@
-package com.example.caching;
+package com.example.caching.caffeine;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

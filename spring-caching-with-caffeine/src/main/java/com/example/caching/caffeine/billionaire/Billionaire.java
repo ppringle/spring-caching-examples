@@ -1,6 +1,4 @@
-package com.example.caching.billionaire;
-
-import lombok.Data;
+package com.example.caching.caffeine.billionaire;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;

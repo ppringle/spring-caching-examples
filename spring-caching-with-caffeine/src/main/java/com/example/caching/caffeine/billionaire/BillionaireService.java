@@ -1,4 +1,4 @@
-package com.example.caching.billionaire;
+package com.example.caching.caffeine.billionaire;
 
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheConfig;

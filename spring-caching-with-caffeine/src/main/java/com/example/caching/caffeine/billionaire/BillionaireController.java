@@ -1,4 +1,4 @@
-package com.example.caching.billionaire;
+package com.example.caching.caffeine.billionaire;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;

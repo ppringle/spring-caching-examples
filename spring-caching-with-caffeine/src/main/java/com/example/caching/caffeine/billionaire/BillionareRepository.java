@@ -1,6 +1,5 @@
-package com.example.caching.billionaire;
+package com.example.caching.caffeine.billionaire;
 
-import com.example.caching.billionaire.Billionaire;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

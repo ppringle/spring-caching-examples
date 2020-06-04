@@ -1,4 +1,4 @@
-package com.example.caching.billionaire;
+package com.example.caching.caffeine.billionaire;
 
 public class BillionaireNotFoundException extends Exception {
 

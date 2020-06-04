@@ -1,4 +1,4 @@
-package com.example.caching.billionaire;
+package com.example.caching.caffeine.billionaire;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
