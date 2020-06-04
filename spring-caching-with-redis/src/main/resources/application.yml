@@ -5,7 +5,7 @@ spring:
   application:
     name: spring-caching-with-redis
   datasource:
-    url: jdbc:h2:mem:testRedisDB
+    url: jdbc:h2:mem:testRedisDB;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
     password: password
@@ -15,10 +15,12 @@ spring:
   cache:
     cache-names: billionaires
     redis:
-      time-to-live: 30s
+      time-to-live: 180
+      cache-null-values: false
+      use-key-prefix: true
     type: redis
   redis:
-    host: localhost
+    host: 127.0.0.1
     port: 6379
     password:
     jedis:

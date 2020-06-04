@@ -1,23 +1,45 @@
 package com.example.caching.redis.billionaire;
 
+import com.example.caching.redis.SpringCachingWithRedisApplication;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.core.env.Environment;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@ExtendWith(SpringExtension.class)
-@SpringBootTest(classes = TestRedisConfiguration.class)
+@SpringBootTest(classes = SpringCachingWithRedisApplication.class)
+@ContextConfiguration(classes = {TestCachingConfig.class},initializers = BillionaireServiceTest.Initializer.class)
+@Testcontainers
 public class BillionaireServiceTest {
+//
+//    @Container
+//    public static GenericContainer redis = new GenericContainer<>("redis:buster")
+//            .withExposedPorts(6379).withStartupTimeout(Duration.ofSeconds(120));
+
+    @Autowired
+    private Environment environment;
 
     @Autowired
     private BillionaireService billionaireService;
@@ -29,11 +51,20 @@ public class BillionaireServiceTest {
     private CacheManager cacheManager;
 
     private Cache billionaireCache;
+//
+//    @BeforeClass
+//    public static void before() {
+//        redis.start();
+//    }
+//
+//    @AfterClass
+//    public static void after() {
+//        redis.stop();
+//    }
 
     @BeforeEach
     public void init() {
         billionaireCache = cacheManager.getCache("billionaires");
-        billionaireCache.invalidate();
         assertThat(billionaireCache).isNotNull();
     }
 
@@ -125,4 +156,15 @@ public class BillionaireServiceTest {
 
     }
 
+    static class Initializer
+            implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+        public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
+//            TestPropertyValues.of(
+////                    "spring.redis.host=" + redis.getHost(),
+////                    "spring.redis.port=" + redis.getFirstMappedPort()
+//                    "spring.redis.host=localhost",
+//                    "spring.redis.port=6379"
+//            ).applyTo(configurableApplicationContext.getEnvironment());
+        }
+    }
 }

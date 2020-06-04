@@ -15,6 +15,7 @@
 	<properties>
 		<java.version>1.8</java.version>
         <lombok.version>1.18.10</lombok.version>
+		<testcontainers.version>1.14.3</testcontainers.version>
 	</properties>
 
 	<modules>
@@ -35,9 +36,14 @@
 				<artifactId>assertj-core</artifactId>
 				<scope>test</scope>
 			</dependency>
+			<dependency>
+				<groupId>org.testcontainers</groupId>
+				<artifactId>junit-jupiter</artifactId>
+				<version>${testcontainers.version}</version>
+				<scope>test</scope>
+			</dependency>
         </dependencies>
     </dependencyManagement>
-
 	<build>
 		<plugins>
 			<plugin>
