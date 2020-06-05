@@ -15,9 +15,9 @@ spring:
   cache:
     cache-names: billionaires
     redis:
-      time-to-live: 180
       cache-null-values: false
       use-key-prefix: true
+      time-to-live: 60000ms
     type: redis
   redis:
     host: 127.0.0.1
@@ -30,9 +30,6 @@ spring:
         min-idle: 2
         max-wait: -1ms
 
-#---
-#spring:
-#  profiles: test
-#  redis:
-#    host: localhost
-#    port: 6370
+---
+spring:
+  profiles: test

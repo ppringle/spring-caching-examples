@@ -6,100 +6,131 @@ import org.junit.BeforeClass;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.core.env.Environment;
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest(classes = SpringCachingWithRedisApplication.class)
-@ContextConfiguration(classes = {TestCachingConfig.class},initializers = BillionaireServiceTest.Initializer.class)
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = {SpringCachingWithRedisApplication.class, CacheConfig.class})
+@ContextConfiguration(initializers = BillionaireServiceTest.Initializer.class)
 @Testcontainers
 public class BillionaireServiceTest {
-//
-//    @Container
-//    public static GenericContainer redis = new GenericContainer<>("redis:buster")
-//            .withExposedPorts(6379).withStartupTimeout(Duration.ofSeconds(120));
 
-    @Autowired
-    private Environment environment;
+    @Container
+    public static GenericContainer redis = new GenericContainer<>("redis:buster")
+            .withExposedPorts(6379).withStartupTimeout(Duration.ofSeconds(120));
 
     @Autowired
     private BillionaireService billionaireService;
 
-    @Autowired
+    @MockBean
     private BillionareRepository billionareRepository;
 
     @Autowired
     private CacheManager cacheManager;
 
+    @Autowired
+    RedisOperations<String, String> redisOperations;
+
     private Cache billionaireCache;
-//
-//    @BeforeClass
-//    public static void before() {
-//        redis.start();
-//    }
-//
-//    @AfterClass
-//    public static void after() {
-//        redis.stop();
-//    }
+
+    @BeforeClass
+    public static void before() {
+        redis.start();
+    }
+
+    @AfterClass
+    public static void after() {
+        redis.stop();
+    }
 
     @BeforeEach
     public void init() {
+        Mockito.reset(billionareRepository);
         billionaireCache = cacheManager.getCache("billionaires");
         assertThat(billionaireCache).isNotNull();
+        billionaireCache.invalidate();
     }
 
     @Test
     public void retrieveAllBillionaires_shouldReturnAllAvailableEntries() {
 
+        List<Billionaire> billionaireList = new ArrayList();
+        billionaireList.add(Billionaire.builder()
+                .id(1L)
+                .firstName("Steve")
+                .lastName("Bezos")
+                .build());
+        billionaireList.add(Billionaire.builder()
+                .id(2L)
+                .firstName("Jim")
+                .lastName("Walton")
+                .build());
+
+        when(billionareRepository.findAll()).thenReturn(billionaireList);
+
         List<Billionaire> billionaires = billionaireService.retrieveAllBillionaires();
         assertThat(billionaires).isNotEmpty();
 
         List<String> lastNames = billionaires.stream().map(b -> b.getLastName()).collect(Collectors.toList());
-        assertThat(lastNames).containsAnyOf("Bezos", "Yinglin", "Zuckerberg", "Arnault", "Walton", "Dangote",
-                "Gates", "Alakija");
+        assertThat(lastNames).containsAnyOf("Bezos", "Walton");
 
     }
 
     @Test
     public void retrieveBillionaireById_shouldUseCacheIfBillionaireEntryIsCached_elseRetrieveEntryFromDB() {
 
-        Billionaire billionaire = billionaireService.retrieveBillionareById(1L);
-        assertThat(billionaire).isNotNull();
+        Billionaire cachedBillionaire = billionaireCache.get(1L, Billionaire.class);
+        assertThat(cachedBillionaire).isNull();
 
-        Billionaire billionaireSecondRetrieval = billionaireService.retrieveBillionareById(1L);
-        assertThat(billionaire).isEqualTo(billionaireSecondRetrieval);
+        when(billionareRepository.findById(eq(1L))).thenReturn(Optional.of(Billionaire.builder()
+                .id(1L)
+                .firstName("Steve")
+                .lastName("Bezos")
+                .build()));
 
-        billionaireCache.invalidate();
+        Billionaire billionaireFirstServiceRetrieval = billionaireService.retrieveBillionareById(1L);
+        assertThat(billionaireFirstServiceRetrieval).isNotNull();
 
-        Billionaire billionaireThirdRetrieval = billionaireService.retrieveBillionareById(1L);
-        assertThat(billionaireThirdRetrieval).isNotNull();
+        cachedBillionaire = billionaireCache.get(1L, Billionaire.class);
+        assertThat(cachedBillionaire).isNotNull();
 
-        assertThat(billionaireThirdRetrieval).isNotEqualTo(billionaire);
+        Billionaire billionaireSecondServiceRetrieval = billionaireService.retrieveBillionareById(1L);
+        assertThat(billionaireSecondServiceRetrieval).isNotNull();
 
+        //Verifies that even though there were two service calls to retrieve the billionaire reference, only one
+        //call was made to the repository, with the last invocation retrieving its reference from the cache...
+        verify(billionareRepository, times(1)).findById(eq(1L));
     }
 
     @Test
     public void updateBillionaireCareer_withNonExistentBillionaireReference_shouldThrowNotFoundException() {
+
+        when(billionareRepository.findById(eq(1L))).thenReturn(null);
 
         assertThrows(BillionaireNotFoundException.class, () -> {
             billionaireService.updateBillionaireCareer(10000L, "");
@@ -110,61 +141,106 @@ public class BillionaireServiceTest {
     @Test
     public void updateBillionaireCareer_withValidBillionaireReference_shouldUpdateTheBillionaireReferenceInTheCacheAndDB() throws BillionaireNotFoundException {
 
-        Billionaire originalBillionaireRef = billionaireService.retrieveBillionareById(1L);
-        assertThat(originalBillionaireRef).isNotNull();
-        assertThat(originalBillionaireRef.getLastName()).isEqualTo("Bezos");
-        assertThat(originalBillionaireRef.getCareer()).isEqualTo("Tech Entrepreneur");
+        Billionaire cachedBillionaire = billionaireCache.get(1L, Billionaire.class);
+        assertThat(cachedBillionaire).isNull();
 
-        Billionaire cachedBillionaireRef = billionaireCache.get(1L, Billionaire.class);
-        assertThat(originalBillionaireRef).isEqualTo(cachedBillionaireRef);
+        when(billionareRepository.findById(eq(1L))).thenReturn(Optional.of(Billionaire.builder()
+                .id(1L)
+                .firstName("Steve")
+                .lastName("Bezos")
+                .build()));
 
+        final AtomicInteger saveBillionaireCount = new AtomicInteger(0);
+        when(billionareRepository.save(any(Billionaire.class))).thenAnswer(invocationOnMock -> {
+            saveBillionaireCount.incrementAndGet();
+            Billionaire billionaire = Billionaire.builder()
+                    .id(1L)
+                    .firstName("Steve")
+                    .lastName("Bezos")
+                    .build();
+
+            if(saveBillionaireCount.get() == 1){
+                billionaire.setCareer("Farmer");
+            }
+
+            if(saveBillionaireCount.get() == 2){
+                billionaire.setCareer("Dentist");
+            }
+
+            return billionaire;
+        });
+
+        //Attempts to update the billionaire reference...
         Billionaire updatedBillionaireRef = billionaireService.updateBillionaireCareer(1L, "Farmer");
         assertThat(updatedBillionaireRef).isNotNull();
         assertThat(updatedBillionaireRef.getLastName()).isEqualTo("Bezos");
         assertThat(updatedBillionaireRef.getCareer()).isEqualTo("Farmer");
 
-        cachedBillionaireRef = billionaireCache.get(1L, Billionaire.class);
-        assertThat(originalBillionaireRef).isNotEqualTo(cachedBillionaireRef);
+        //Verifies that the value has been updated in the cache reflecting career value of "Farmer"
+        cachedBillionaire = billionaireCache.get(1L, Billionaire.class);
+        assertThat(cachedBillionaire).isNotNull();
+        assertThat(cachedBillionaire.getCareer()).isEqualTo("Farmer");
+
+        //Verifies that the value has been updated in the cache reflecting career value of "Dentist"
+        billionaireService.updateBillionaireCareer(1L, "Dentist");
+        cachedBillionaire = billionaireCache.get(1L, Billionaire.class);
+        assertThat(cachedBillionaire).isNotNull();
+        assertThat(cachedBillionaire.getCareer()).isEqualTo("Dentist");
+
+        verify(billionareRepository, times(2)).findById(eq(1L));
+        verify(billionareRepository, times(2)).save(any(Billionaire.class));
 
     }
 
     @Test
     public void deleteBillionaire_withNonExistentBillionaireReference_shouldThrowNotFoundException() {
 
+        when(billionareRepository.findById(eq(1L))).thenReturn(null);
+
         assertThrows(BillionaireNotFoundException.class, () -> {
             billionaireService.deleteBillionaire(10000L);
         });
-
     }
 
     @Test
-    public void deleteBillionaire_withValidBillionaireReference_shouldDeleteTheBillionaireReferenceInTheCacheAndDB() throws BillionaireNotFoundException {
+    public void deleteBillionaire_withValidBillionaireReference_shouldDeleteTheBillionaireReferenceInTheCacheAndDB()
+            throws BillionaireNotFoundException {
 
-        Billionaire originalBillionaireRef = billionaireService.retrieveBillionareById(1L);
-        assertThat(originalBillionaireRef).isNotNull();
-        assertThat(originalBillionaireRef.getLastName()).isEqualTo("Bezos");
+        Billionaire cachedBillionaire = billionaireCache.get(1L, Billionaire.class);
+        assertThat(cachedBillionaire).isNull();
 
-        Billionaire cachedBillionaireRef = billionaireCache.get(1L, Billionaire.class);
-        assertThat(originalBillionaireRef).isEqualTo(cachedBillionaireRef);
+        Billionaire billionareReference = Billionaire.builder()
+                .id(1L)
+                .firstName("Steve")
+                .lastName("Bezos")
+                .build();
 
+        //Adds the entry to the cache...
+        billionaireCache.put(1L, billionareReference);
+        cachedBillionaire = billionaireCache.get(1L, Billionaire.class);
+        assertThat(cachedBillionaire).isNotNull();
+
+        when(billionareRepository.findById(eq(1L))).thenReturn(Optional.of(billionareReference));
+        doNothing().when(billionareRepository).delete(any(Billionaire.class));
+
+        //Attempts to delete the entry...
         billionaireService.deleteBillionaire(1L);
 
-        cachedBillionaireRef = billionaireCache.get(1L, Billionaire.class);
-        assertThat(cachedBillionaireRef).isEqualTo(null);
+        //Verifies that the cache entry got evicted from the cache...
+        cachedBillionaire = billionaireCache.get(1L, Billionaire.class);
+        assertThat(cachedBillionaire).isNull();
 
-        assertThat(billionareRepository.findById(1L).orElse(null)).isEqualTo(null);
-
+        verify(billionareRepository, times(1)).findById(eq(1L));
+        verify(billionareRepository, times(1)).delete(any(Billionaire.class));
     }
 
     static class Initializer
             implements ApplicationContextInitializer<ConfigurableApplicationContext> {
         public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
-//            TestPropertyValues.of(
-////                    "spring.redis.host=" + redis.getHost(),
-////                    "spring.redis.port=" + redis.getFirstMappedPort()
-//                    "spring.redis.host=localhost",
-//                    "spring.redis.port=6379"
-//            ).applyTo(configurableApplicationContext.getEnvironment());
+            TestPropertyValues.of(
+                    "spring.redis.host=" + redis.getHost(),
+                    "spring.redis.port=" + redis.getFirstMappedPort()
+            ).applyTo(configurableApplicationContext.getEnvironment());
         }
     }
 }

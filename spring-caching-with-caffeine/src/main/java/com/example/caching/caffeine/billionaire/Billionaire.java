@@ -1,13 +1,15 @@
 package com.example.caching.caffeine.billionaire;
 
+import lombok.Builder;
+
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
-//@Data
 @Entity
 @Table(name = "billionaires")
+@Builder
 public class Billionaire {
 
     @Id
