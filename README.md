@@ -63,7 +63,7 @@ The Spring Framework provides support for transparently adding caching support t
 allows for consistent usage of various Caching solutions with minimal changes made to the codebase.
 
 
-For access to the DB2 H2 console, please navigate to:
+The examples use H2 as the RDBMS. For access to the H2 console, please navigate to:
 
 ```
 http://localhost:[port]/h2-console
