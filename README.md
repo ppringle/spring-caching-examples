@@ -56,6 +56,11 @@ offering a single logical view (and state) of the cache.
 A distributed cache will have two major overheads that will make it slower than an in-process cache 
 network latency and object serialization.
 
+### Use Case:
+
+Use this strategy if the application to be deployed across multiple nodes and/or if your application has a requirement
+to cache mutable objects references where there is a desire to always have those reads be consistent.
+
 # Spring Caching Abstraction
 
 The Spring Framework provides support for transparently adding caching support to a Spring application. The 
