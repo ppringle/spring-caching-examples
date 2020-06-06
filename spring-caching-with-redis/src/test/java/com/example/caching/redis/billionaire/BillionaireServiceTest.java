@@ -35,7 +35,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(classes = {SpringCachingWithRedisApplication.class, CacheConfig.class})
+@SpringBootTest(classes = {SpringCachingWithRedisApplication.class})
 @ContextConfiguration(initializers = BillionaireServiceTest.Initializer.class)
 @Testcontainers
 public class BillionaireServiceTest {
